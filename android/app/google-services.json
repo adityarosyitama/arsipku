@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "420847519509",
+    "project_id": "arsipku-28dfb",
+    "storage_bucket": "arsipku-28dfb.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:420847519509:android:9dc6c3fa67312436e94b1c",
+        "android_client_info": {
+          "package_name": "com.arsipku"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwKooRWvJ0n6xH5uCcTgh32CpSM1QDGoY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

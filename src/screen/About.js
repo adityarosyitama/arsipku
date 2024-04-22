@@ -134,10 +134,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 16,
+    color:'blue'
   },
   memberName: {
     fontSize: 16,
     marginBottom: 8,
+    color:'blue'
   },
   versionContainer: {
     flex: 1,

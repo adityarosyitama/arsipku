@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Modal, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
-export const ModalAddPhoto = ({ show, onClose, setImgProfile, dispatch, navigation }) => {
+export const ModalPhotoProfile = ({ show, onClose, setImgProfile, dispatch, navigation }) => {
   const openCamera = async () => {
     const options = {
       mediaType: 'photo',
@@ -13,7 +13,6 @@ export const ModalAddPhoto = ({ show, onClose, setImgProfile, dispatch, navigati
 
     try {
       const result = await launchCamera(options);
-      console.log(result, result.assets[0].uri);
       if (!result.cancelled) {
         setImgProfile(result.assets[0].uri); // Update imgProfile dengan URI gambar dari kamera
         tambahData(result.assets[0].uri);
@@ -33,7 +32,6 @@ export const ModalAddPhoto = ({ show, onClose, setImgProfile, dispatch, navigati
 
     try {
       const result = await launchImageLibrary(options);
-      console.log(result, result.assets[0].uri)
       if (!result.cancelled) {
         setImgProfile(result.assets[0].uri); // Update imgProfile dengan URI gambar dari galeri
         tambahData(result.assets[0].uri);
@@ -43,12 +41,11 @@ export const ModalAddPhoto = ({ show, onClose, setImgProfile, dispatch, navigati
     }
   };
 
-  const tambahData = (i: any) => {
+  const tambahData = (imgProfile) => {
     const data = {
-      imgProfile: i
+      imgProfile: imgProfile
     };
-    dispatch({ type: 'ADD_IMAGE', data: data });
-    navigation.replace('bottom');
+    dispatch({ type: 'ADD_IMAGE', data: data }); // Perbarui data profil pengguna di Redux
   };
 
   return (

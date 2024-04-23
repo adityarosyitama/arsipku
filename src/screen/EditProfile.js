@@ -13,7 +13,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import { useDispatch, useSelector } from 'react-redux';
-import { ModalAddPhoto } from './modal/ModalAddPhoto';
+import { ModalPhotoProfile } from './modal/ModalPhotoProfile';
 
 export default function EditProfile({ navigation }) {
   const { loginData } = useSelector(state => state.login);
@@ -25,22 +25,21 @@ export default function EditProfile({ navigation }) {
   const dispatch = useDispatch();
   const tambahData = () => {
     const data = {
-      name: name ? name : 'Agus Susanto',
-      email: email ? email : 'Agussusanto@gmail.com',
-      phoneNumber: phoneNumber ? phoneNumber : '081245678972',
-      imgProfile: imgProfile ? imgProfile :
-        'https://i.pinimg.com/564x/7c/c7/a6/7cc7a630624d20f7797cb4c8e93c09c1.jpg'
-      ,
+      name: name ? name : loginData.name,
+      email: email ? email : loginData.email,
+      phoneNumber: phoneNumber ? phoneNumber : loginData.phoneNumber,
+      imgProfile: imgProfile ? imgProfile : loginData.imgProfile,
     };
     dispatch({ type: 'ADD_DATA_LOGIN', data: data });
     navigation.replace('bottom');
   };
+  
   const handleCloseModal = () => {
     setModalPhoto(false);
   };
   return (
     <View style={styles.container}>
-      <ModalAddPhoto show={modalPhoto} onClose={handleCloseModal} setImgProfile={setImgProfile} />
+      <ModalPhotoProfile show={modalPhoto} onClose={handleCloseModal} setImgProfile={setImgProfile} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#243bbb" />

@@ -56,7 +56,7 @@ export default function About({ navigation }) {
           />
           <View style={styles.versionInfo}>
             <Text style={styles.versionLabel}>App Version</Text>
-            <Text style={styles.versionValue}>v.1.0.0</Text>
+            <Text style={styles.versionValue}>v.1.1.0</Text>
           </View>
         </View>
       </View>

@@ -22,9 +22,9 @@ const Register = ({ navigation }) => {
 
   const tambahData = () => {
     const data = {
-      name: name ? name : 'Agus Susanto',
-      email: email ? email : 'Agussusanto@gmail.com',
-      phoneNumber: phoneNumber ? phoneNumber : '081245678972',
+      name: name ? name : 'USER',
+      email: email ? email : 'USER@gmail.com',
+      phoneNumber: phoneNumber ? phoneNumber : '-',
       imgProfile:
         'https://i.pinimg.com/564x/7c/c7/a6/7cc7a630624d20f7797cb4c8e93c09c1.jpg',
       password: password ? password : '123123',

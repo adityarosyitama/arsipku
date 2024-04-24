@@ -11,6 +11,7 @@ import {
   Alert,
   StyleSheet,
   TextInput,
+  Modal,
 } from 'react-native';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import LinearGradient from 'react-native-linear-gradient';
@@ -36,6 +37,7 @@ export default function Home({navigation}) {
   const [searchText, setSearchText] = useState('');
   const [filteredFolders, setFilteredFolders] = useState([]);
   const [img, setImg] = useState('');
+  const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
     getAllFolders(currentPath);
@@ -197,19 +199,15 @@ export default function Home({navigation}) {
   const saveImageAsPng = async (asset, currentPath) => {
     const sourcePath = asset.uri; // Path dari gambar yang diambil
     const fileNamePrefix = 'IMG_'; // Awalan nama file
-
-    // Mendapatkan tanggal, bulan, tahun, dan detik dengan dua digit
-    const currentDate = new Date();
-    const day = currentDate.getDate().toString().padStart(2, '0');
-    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
-    const year = currentDate.getFullYear().toString();
-    const seconds = currentDate.getSeconds().toString().padStart(2, '0');
-
-    // Membuat nama file baru dengan tanggal, bulan, tahun, dan detik dengan dua digit
-    const newFileName = `${fileNamePrefix}${day}${month}${year}_${seconds}.png`;
-
+  
+    // Mendapatkan detik saat ini dengan dua digit
+    const seconds = new Date().getSeconds().toString().padStart(2, '0');
+  
+    // Membuat nama file baru dengan awalan dan detik
+    const newFileName = `${fileNamePrefix}${seconds}.png`;
+  
     const destinationPath = `${currentPath}/${newFileName}`; // Path untuk menyimpan gambar sebagai .png
-
+  
     try {
       // Membaca konten gambar
       const imageContent = await RNFS.readFile(sourcePath, 'base64');
@@ -222,6 +220,7 @@ export default function Home({navigation}) {
       console.error('Error saving image as .png:', error);
     }
   };
+  
   const onConvertSuccess = async pdfFilePath => {
     const folderPath =
       currentPath !== RNFS.DocumentDirectoryPath
@@ -291,6 +290,32 @@ export default function Home({navigation}) {
     }
   };
 
+  const handleMenuPress = (item) => {
+    setSelectedItem(item);
+  };
+
+  const handleClosePress = () => {
+    setSelectedItem(null);
+  };
+
+  const handleRename = () => {
+    // Implement rename functionality here
+    Alert.alert('Rename clicked');
+    handleClosePress();
+  };
+
+  const handleDelete = () => {
+    // Implement delete functionality here
+    Alert.alert('Delete clicked');
+    handleClosePress();
+  };
+
+  const handleDownload = () => {
+    // Implement download functionality here
+    Alert.alert('Download clicked');
+    handleClosePress();
+  };
+
   const renderItem = ({item}) => {
     return (
       <View style={styles.itemContainer}>
@@ -329,13 +354,31 @@ export default function Home({navigation}) {
             <Text style={styles.itemText}>{item.name}</Text>
           </View>
         </TouchableOpacity>
-        {item.name.toLowerCase().endsWith('.pdf') && (
-          <TouchableOpacity
-            style={styles.downloadIcon}
-            onPress={() => downloadPdf(item)}>
-            <AntDesign name="arrowdown" size={18} color="gray" />
-          </TouchableOpacity>
-        )}
+        <View style={styles.itemContent}>
+          {selectedItem === item && ( 
+            <View style={styles.containerMenu}>
+              <TouchableOpacity onPress={handleRename} style={styles.menu}>
+                <AntDesign name="edit" size={18} color="gray" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDelete} style={styles.menu}>
+                <AntDesign name="delete" size={18} color="gray" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDownload} style={styles.menu}>
+                <AntDesign name="download" size={18} color="gray" />
+              </TouchableOpacity>
+            </View>
+          )}
+          {!selectedItem && ( 
+            <TouchableOpacity onPress={() => handleMenuPress(item)}>
+              <AntDesign name="ellipsis1" size={18} color="gray" />
+            </TouchableOpacity>
+          )}
+          {selectedItem === item && ( 
+            <TouchableOpacity onPress={handleClosePress}>
+              <AntDesign name="close" size={18} color="red" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     );
   };
@@ -580,6 +623,12 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     marginRight: 10,
+  },
+  containerMenu: {
+    flexDirection: 'row',
+  },
+  menu: {
+    paddingRight: 8,
   },
   itemText: {
     fontSize: 16,

@@ -22,7 +22,7 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import {ModalConvertFile} from './modal/ModalConvertFile';
 import {ModalImage} from './modal/ModalImage';
-import { PermissionsAndroid } from 'react-native';
+import {PermissionsAndroid} from 'react-native';
 import {ModalPdf} from './modal/ModalPdf';
 
 export default function Home({navigation}) {
@@ -199,15 +199,15 @@ export default function Home({navigation}) {
   const saveImageAsPng = async (asset, currentPath) => {
     const sourcePath = asset.uri; // Path dari gambar yang diambil
     const fileNamePrefix = 'IMG_'; // Awalan nama file
-  
+
     // Mendapatkan detik saat ini dengan dua digit
     const seconds = new Date().getSeconds().toString().padStart(2, '0');
-  
+
     // Membuat nama file baru dengan awalan dan detik
     const newFileName = `${fileNamePrefix}${seconds}.png`;
-  
+
     const destinationPath = `${currentPath}/${newFileName}`; // Path untuk menyimpan gambar sebagai .png
-  
+
     try {
       // Membaca konten gambar
       const imageContent = await RNFS.readFile(sourcePath, 'base64');
@@ -220,7 +220,7 @@ export default function Home({navigation}) {
       console.error('Error saving image as .png:', error);
     }
   };
-  
+
   const onConvertSuccess = async pdfFilePath => {
     const folderPath =
       currentPath !== RNFS.DocumentDirectoryPath
@@ -259,20 +259,21 @@ export default function Home({navigation}) {
     setModalConvert(false);
   };
 
-  const downloadPdf = async (item) => {
+  const downloadFile = async item => {
     const downloadPath = '/storage/emulated/0/download';
     const fileName = item.name.split('/').pop(); // Mendapatkan nama file dari URI
     const localFilePath = `${downloadPath}/${fileName}`;
-  
+
     try {
       await RNFS.copyFile(item.path, localFilePath);
       console.log('File downloaded to:', localFilePath);
-      Alert.alert('Success', 'PDF downloaded successfully');
+      Alert.alert('Success', 'PDF downloaded successfully\n\nDownloaded files can be seen in the download folder in internal storage');
     } catch (error) {
       console.error('Download error:', error);
       Alert.alert('Error', 'Failed to download PDF');
     }
-  };
+    handleClosePress();
+};
 
   const navigateToFolder = item => {
     if (item.isDirectory()) {
@@ -282,15 +283,12 @@ export default function Home({navigation}) {
     } else if (item.name.toLowerCase().endsWith('.pdf')) {
       navigation.navigate('PdfViewer', {pdfPath: item.path});
       setSearchText('');
-    } else if (
-      item.name.toLowerCase().endsWith('.jpg') ||
-      item.name.toLowerCase().endsWith('.png')
-    ) {
+    } else if (item.name.toLowerCase().endsWith('.png')) {
       setImg(item.path);
     }
   };
 
-  const handleMenuPress = (item) => {
+  const handleMenuPress = item => {
     setSelectedItem(item);
   };
 
@@ -298,21 +296,9 @@ export default function Home({navigation}) {
     setSelectedItem(null);
   };
 
-  const handleRename = () => {
+  const renameFile= () => {
     // Implement rename functionality here
     Alert.alert('Rename clicked');
-    handleClosePress();
-  };
-
-  const handleDelete = () => {
-    // Implement delete functionality here
-    Alert.alert('Delete clicked');
-    handleClosePress();
-  };
-
-  const handleDownload = () => {
-    // Implement download functionality here
-    Alert.alert('Download clicked');
     handleClosePress();
   };
 
@@ -320,30 +306,12 @@ export default function Home({navigation}) {
     return (
       <View style={styles.itemContainer}>
         <TouchableOpacity
-          onPress={() => navigateToFolder(item)}
-          onLongPress={() => {
-            Alert.alert(
-              `Delete ${item.isDirectory() ? 'Folder' : 'File'}`,
-              `Are you sure you want to delete ${item.name}?`,
-              [
-                {
-                  text: 'Cancel',
-                  style: 'cancel',
-                },
-                {
-                  text: 'Delete',
-                  onPress: () => deleteDir(item.path),
-                  style: 'destructive',
-                },
-              ],
-            );
-          }}>
+          onPress={() => navigateToFolder(item)}>
           <View style={styles.itemContent}>
             <View style={styles.iconContainer}>
               {item.isDirectory() ? (
                 <FontAwesome name="folder" size={24} color="#F8D775" />
-              ) : item.name.toLowerCase().endsWith('.jpg') ||
-                item.name.toLowerCase().endsWith('.png') ? (
+              ) : item.name.toLowerCase().endsWith('.png') ? (
                 <FontAwesome name="image" size={20} color="#87CEEB" />
               ) : item.name.toLowerCase().endsWith('.pdf') ? (
                 <FontAwesome name="file-pdf-o" size={24} color="red" />
@@ -355,25 +323,55 @@ export default function Home({navigation}) {
           </View>
         </TouchableOpacity>
         <View style={styles.itemContent}>
-          {selectedItem === item && ( 
+          {selectedItem === item && (
             <View style={styles.containerMenu}>
-              <TouchableOpacity onPress={handleRename} style={styles.menu}>
+              <TouchableOpacity onPress={renameFile} style={styles.menu}>
                 <AntDesign name="edit" size={18} color="gray" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleDelete} style={styles.menu}>
+              <TouchableOpacity
+                onPress={() => {
+                  Alert.alert(
+                    `Delete ${item.isDirectory() ? 'Folder' : 'File'}`,
+                    `Are you sure you want to delete ${item.name}?`,
+                    [
+                      {
+                        text: 'Cancel',
+                        style: 'cancel',
+                      },
+                      {
+                        text: 'Delete',
+                        onPress: () => {
+                          deleteDir(item.path);
+                          Alert.alert(
+                            `Delete ${item.isDirectory() ? 'Folder' : 'File'}`,
+                            `${item.name} successfully deleted`,
+                          );
+                        },
+                        style: 'destructive',
+                      },
+                    ],
+                  );
+                  handleClosePress();
+                }}
+                style={styles.menu}>
                 <AntDesign name="delete" size={18} color="gray" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleDownload} style={styles.menu}>
-                <AntDesign name="download" size={18} color="gray" />
-              </TouchableOpacity>
+              {/* Render download menu item only if the file is a PDF */}
+              {item.name.toLowerCase().endsWith('.pdf') && (
+                <TouchableOpacity
+                  onPress={() => downloadFile(item)}
+                  style={styles.menu}>
+                  <AntDesign name="download" size={18} color="gray" />
+                </TouchableOpacity>
+              )}
             </View>
           )}
-          {!selectedItem && ( 
+          {!selectedItem && (
             <TouchableOpacity onPress={() => handleMenuPress(item)}>
               <AntDesign name="ellipsis1" size={18} color="gray" />
             </TouchableOpacity>
           )}
-          {selectedItem === item && ( 
+          {selectedItem === item && (
             <TouchableOpacity onPress={handleClosePress}>
               <AntDesign name="close" size={18} color="red" />
             </TouchableOpacity>
@@ -393,7 +391,6 @@ export default function Home({navigation}) {
         setFolderName={setFolderName}
         createFolder={createFolder}
       />
-
       <ModalAddFile
         show={modalFile}
         onClose={() => setModalFile(false)}
@@ -583,8 +580,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   backIcon: {
-    tintColor:'#000',
-    color:'#000',
+    tintColor: '#000',
+    color: '#000',
   },
   titleContainer: {
     flexDirection: 'column',

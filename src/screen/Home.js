@@ -22,8 +22,7 @@ import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import {ModalConvertFile} from './modal/ModalConvertFile';
 import {ModalImage} from './modal/ModalImage';
-import {PermissionsAndroid} from 'react-native';
-import {ModalPdf} from './modal/ModalPdf';
+import {ModalRename} from './modal/ModalRename';
 
 export default function Home({navigation}) {
   const [currentPath, setCurrentPath] = useState(RNFS.DocumentDirectoryPath);
@@ -38,6 +37,8 @@ export default function Home({navigation}) {
   const [filteredFolders, setFilteredFolders] = useState([]);
   const [img, setImg] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
+  const [newName, setNewName] = useState('');
+  const [modalRename, setModalRename] = useState(false);
 
   useEffect(() => {
     getAllFolders(currentPath);
@@ -98,18 +99,14 @@ export default function Home({navigation}) {
   const navigateBack = () => {
     // Define the stop directory path
     const stopDirectoryPath = '/data/user/0/com.arsipku/files';
-
     // If currentPath is already at stop directory, do nothing
     if (currentPath === stopDirectoryPath) {
       return;
     }
-
     // Define the root directory path
     const rootDirectoryPath = '/data/user/0/com.arsipku';
-
     // Remove the last part of the current path to navigate to the parent directory
     const parentPath = currentPath.split('/').slice(0, -1).join('/');
-
     // If the parent path is the root directory path, set currentPath to stop directory
     if (parentPath === rootDirectoryPath) {
       setCurrentPath(stopDirectoryPath);
@@ -119,7 +116,6 @@ export default function Home({navigation}) {
       setCurrentPath(parentPath);
       console.log('Entered folder:', parentPath); // Log saat tombol back ditekan
     }
-
     // Reset search text when navigating back
     setSearchText('');
   };
@@ -199,15 +195,11 @@ export default function Home({navigation}) {
   const saveImageAsPng = async (asset, currentPath) => {
     const sourcePath = asset.uri; // Path dari gambar yang diambil
     const fileNamePrefix = 'IMG_'; // Awalan nama file
-
     // Mendapatkan detik saat ini dengan dua digit
     const seconds = new Date().getSeconds().toString().padStart(2, '0');
-
     // Membuat nama file baru dengan awalan dan detik
     const newFileName = `${fileNamePrefix}${seconds}.png`;
-
     const destinationPath = `${currentPath}/${newFileName}`; // Path untuk menyimpan gambar sebagai .png
-
     try {
       // Membaca konten gambar
       const imageContent = await RNFS.readFile(sourcePath, 'base64');
@@ -231,7 +223,6 @@ export default function Home({navigation}) {
     const seconds = currentDate.getSeconds().toString().padStart(2, '0');
     const newFileName = `${fileNamePrefix}${seconds}.pdf`;
     const destinationPath = `${folderPath}/${newFileName}`;
-
     try {
       const isFileExists = await RNFS.exists(destinationPath);
       let finalDestinationPath = destinationPath;
@@ -243,10 +234,8 @@ export default function Home({navigation}) {
         }
         finalDestinationPath = `${folderPath}/${uniqueFileName}`;
       }
-
       await RNFS.moveFile(pdfFilePath, finalDestinationPath);
       console.log('PDF file saved:', finalDestinationPath); // Print the saved PDF file path
-
       const pdfFile = {
         name: finalDestinationPath.split('/').pop(),
         path: finalDestinationPath,
@@ -263,17 +252,19 @@ export default function Home({navigation}) {
     const downloadPath = '/storage/emulated/0/download';
     const fileName = item.name.split('/').pop(); // Mendapatkan nama file dari URI
     const localFilePath = `${downloadPath}/${fileName}`;
-
     try {
       await RNFS.copyFile(item.path, localFilePath);
       console.log('File downloaded to:', localFilePath);
-      Alert.alert('Success', 'PDF downloaded successfully\n\nDownloaded files can be seen in the download folder in internal storage');
+      Alert.alert(
+        'Success',
+        'PDF downloaded successfully\n\nDownloaded files can be seen in the download folder in internal storage',
+      );
     } catch (error) {
       console.error('Download error:', error);
       Alert.alert('Error', 'Failed to download PDF');
     }
     handleClosePress();
-};
+  };
 
   const navigateToFolder = item => {
     if (item.isDirectory()) {
@@ -288,25 +279,77 @@ export default function Home({navigation}) {
     }
   };
 
-  const handleMenuPress = item => {
+  const handleMenuPress = (item) => {
     setSelectedItem(item);
   };
-
+  
   const handleClosePress = () => {
     setSelectedItem(null);
   };
-
-  const renameFile= () => {
-    // Implement rename functionality here
-    Alert.alert('Rename clicked');
-    handleClosePress();
+  
+  const handleDeletePress = (item) => {
+    Alert.alert(
+      `Delete ${item.isDirectory() ? 'Folder' : 'File'}`,
+      `Are you sure you want to delete ${item.name}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          onPress: () => {
+            deleteDir(item.path);
+            Alert.alert(
+              `Delete ${item.isDirectory() ? 'Folder' : 'File'}`,
+              `${item.name} successfully deleted`,
+            );
+            handleClosePress();
+          },
+          style: 'destructive',
+        },
+      ],
+    );
   };
 
-  const renderItem = ({item}) => {
+  const renameFile = async () => {
+    try {
+      let newPath = '';
+      // Lakukan pengecekan jenis file dan proses rename sesuai dengan jenis file
+      if (selectedItem.path.toLowerCase().endsWith('.png')) {
+        newPath = `${selectedItem.path.substring(
+          0,
+          selectedItem.path.lastIndexOf('/'),
+        )}/${newName}.png`;
+        await RNFS.moveFile(selectedItem.path, newPath);
+      } else if (selectedItem.path.toLowerCase().endsWith('.pdf')) {
+        newPath = `${selectedItem.path.substring(
+          0,
+          selectedItem.path.lastIndexOf('/'),
+        )}/${newName}.pdf`;
+        await RNFS.moveFile(selectedItem.path, newPath);
+      } else {
+        newPath = `${selectedItem.path.substring(
+          0,
+          selectedItem.path.lastIndexOf('/'),
+        )}/${newName}`;
+        await RNFS.moveFile(selectedItem.path, newPath);
+      }
+      console.log('File renamed successfully:', newPath);
+      // Perbarui daftar folder setelah rename berhasil
+      getAllFolders(
+        selectedItem.path.substring(0, selectedItem.path.lastIndexOf('/')),
+      );
+    } catch (error) {
+      console.error('Error renaming file:', error);
+    }
+    handleClosePress();
+  };  
+
+  const renderItem = ({ item }) => {
     return (
       <View style={styles.itemContainer}>
-        <TouchableOpacity
-          onPress={() => navigateToFolder(item)}>
+        <TouchableOpacity onPress={() => navigateToFolder(item)}>
           <View style={styles.itemContent}>
             <View style={styles.iconContainer}>
               {item.isDirectory() ? (
@@ -325,42 +368,15 @@ export default function Home({navigation}) {
         <View style={styles.itemContent}>
           {selectedItem === item && (
             <View style={styles.containerMenu}>
-              <TouchableOpacity onPress={renameFile} style={styles.menu}>
+              <TouchableOpacity onPress={() => setModalRename(true)} style={styles.menu}>
                 <AntDesign name="edit" size={18} color="gray" />
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  Alert.alert(
-                    `Delete ${item.isDirectory() ? 'Folder' : 'File'}`,
-                    `Are you sure you want to delete ${item.name}?`,
-                    [
-                      {
-                        text: 'Cancel',
-                        style: 'cancel',
-                      },
-                      {
-                        text: 'Delete',
-                        onPress: () => {
-                          deleteDir(item.path);
-                          Alert.alert(
-                            `Delete ${item.isDirectory() ? 'Folder' : 'File'}`,
-                            `${item.name} successfully deleted`,
-                          );
-                        },
-                        style: 'destructive',
-                      },
-                    ],
-                  );
-                  handleClosePress();
-                }}
-                style={styles.menu}>
+              <TouchableOpacity onPress={() => handleDeletePress(item)} style={styles.menu}>
                 <AntDesign name="delete" size={18} color="gray" />
               </TouchableOpacity>
               {/* Render download menu item only if the file is a PDF */}
               {item.name.toLowerCase().endsWith('.pdf') && (
-                <TouchableOpacity
-                  onPress={() => downloadFile(item)}
-                  style={styles.menu}>
+                <TouchableOpacity onPress={() => downloadFile(item)} style={styles.menu}>
                   <AntDesign name="download" size={18} color="gray" />
                 </TouchableOpacity>
               )}
@@ -401,6 +417,13 @@ export default function Home({navigation}) {
         show={modalConvert}
         onClose={() => setModalConvert(false)}
         onConvertSuccess={onConvertSuccess}
+      />
+      <ModalRename
+        show={modalRename}
+        onClose={() => { setModalRename(false); handleClosePress(); }}
+        newName={newName}
+        setNewName={setNewName}
+        renameFile={renameFile}
       />
       <ScrollView
         showsVerticalScrollIndicator={false}

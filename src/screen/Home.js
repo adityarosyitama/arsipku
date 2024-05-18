@@ -25,15 +25,11 @@ import {ModalImage} from './modal/ModalImage';
 import {ModalRename} from './modal/ModalRename';
 import {ModalMoveFile} from './modal/ModalMoveFile';
 
-import storage from './../helpers/Storage';
-
 export default function Home({navigation}) {
   const [currentPath, setCurrentPath] = useState(RNFS.DocumentDirectoryPath);
-  const [fullFolders, setFullFolders] = useState([]);
   const [folders, setFolders] = useState([]);
   const [folderName, setFolderName] = useState('');
   const [sortDirection, setSortDirection] = useState('asc');
-  const [oldPath, setOldPath] = useState('');
 
   const [modalFolder, setModalFolder] = useState(false);
   const [modalFile, setModalFile] = useState(false);
@@ -59,10 +55,6 @@ export default function Home({navigation}) {
   useEffect(() => {
     setSearchText('');
   }, [img]);
-
-  useEffect(() => {
-    getAllFoldersFromStorage();
-  }, []);
 
   const getAllFolders = path => {
     RNFS.readDir(path)
@@ -91,15 +83,6 @@ export default function Home({navigation}) {
       .then(() => {
         setFolderName('');
         getAllFolders(currentPath);
-
-        var objFolder = {name: folderName, path: newPath};
-        var newFullFolders = [...fullFolders, objFolder];
-        setFullFolders(newFullFolders);
-
-        storage.save({
-          key: 'folders',
-          data: newFullFolders,
-        });
 
         console.log('Created new folder:', newPath); // Tambahkan log untuk menampilkan path folder yang baru dibuat
       })
@@ -322,16 +305,6 @@ export default function Home({navigation}) {
           text: 'Delete',
           onPress: () => {
             deleteDir(item.path);
-            let exceptFolders = fullFolders.filter(
-              exceptFolder => exceptFolder.path !== item.path,
-            );
-
-            setFullFolders(exceptFolders);
-            storage.save({
-              key: 'folders',
-              data: exceptFolders,
-            });
-
             Alert.alert(
               `Delete ${item.isDirectory() ? 'Folder' : 'File'}`,
               `${item.name} successfully deleted`,
@@ -347,9 +320,6 @@ export default function Home({navigation}) {
   const handleRenamePress = currentItem => {
     setModalRename(true);
     setCurrentFile(currentItem);
-    if (currentFile && currentFile.isDirectory()) {
-      setOldPath(currentItem.path);
-    }
     setNewName('');
   };
 
@@ -381,28 +351,6 @@ export default function Home({navigation}) {
         await RNFS.moveFile(currentFile.path, newPath);
       }
 
-      console.log('oldPath');
-      console.log(oldPath);
-
-      if (currentFile.isDirectory()) {
-        let folderChoiceName = newPath.split('/').pop();
-        let folderChoicePath = newPath;
-
-        let exceptFolders = fullFolders.filter(item => item.path !== oldPath);
-
-        let newFullFolders = [
-          ...exceptFolders,
-          {name: folderChoiceName, path: folderChoicePath},
-        ];
-        console.log('new folders');
-        console.log(newFullFolders);
-        setFullFolders(newFullFolders);
-        storage.save({
-          key: 'folders',
-          data: newFullFolders,
-        });
-      }
-
       // Perbarui daftar folder setelah rename berhasil
       getAllFolders(
         currentFile.path.substring(0, currentFile.path.lastIndexOf('/')),
@@ -424,10 +372,6 @@ export default function Home({navigation}) {
       getAllFolders(newPath);
       setCurrentPath(newPath);
 
-      if (currentFile.isDirectory()) {
-        changePathFullFolders(newFilePath);
-      }
-
       Alert.alert('success', 'Move is successfully');
     } catch (error) {
       console.error('Error moving file:', error);
@@ -436,58 +380,9 @@ export default function Home({navigation}) {
     handleClosePress();
   };
 
-  const changePathFullFolders = newFilePath => {
-    let exceptFolders = fullFolders.filter(
-      item => item.path !== currentFile.path,
-    );
-    let folderChanged = fullFolders.find(
-      item => item.path === currentFile.path,
-    );
-
-    if (folderChanged) {
-      folderChanged.path = newFilePath;
-    }
-
-    let newFullFolders = [...exceptFolders, folderChanged];
-
-    // console.log('new folder: ');
-    // console.log(newFullFolders);
-
-    setFullFolders(newFullFolders);
-    storage.save({
-      key: 'folders',
-      data: newFullFolders,
-    });
-  };
-
   const modalMovingFile = item => {
     setModalMoveFile(true);
     setCurrentFile(item);
-  };
-
-  const getAllFoldersFromStorage = () => {
-    console.log(fullFolders);
-    // setFullFolders(filteredFolders.filter(item => item.isDirectory()));
-    // storage.save({
-    //   key: 'folders',
-    //   data: filteredFolders.filter(item => item.isDirectory()),
-    // });
-
-    // storage.remove({
-    //   key: 'folders',
-    // });
-
-    storage
-      .load({
-        key: 'folders',
-      })
-      .then(ret => {
-        let arrays = Object.keys(ret).map(key => ret[key]);
-        setFullFolders(arrays);
-      })
-      .catch(err => {
-        console.log('error loading folders: ' + err);
-      });
   };
 
   const renderItem = ({item}) => {
@@ -590,7 +485,7 @@ export default function Home({navigation}) {
           handleClosePress();
         }}
         currentFile={currentFile}
-        folders={fullFolders}
+        folders={filteredFolders}
         moveToFolder={moveToFolder}
       />
       <ScrollView

@@ -17,13 +17,8 @@ export const ModalMoveFile = ({
   folders,
   moveToFolder,
 }) => {
-  // console.log('move');
-  // console.log(folders);
-  // const filteredFolders = folders;
-  const filteredFolders =
-    folders.length > 0
-      ? folders.filter(item => item.path !== currentFile?.path)
-      : [];
+  filteredFolders = folders.filter(item => item.path !== currentFile.path);
+  let filteredFolders = filteredFolders.filter(item => item.isDirectory());
 
   const rootPath = RNFS.DocumentDirectoryPath;
 
@@ -46,7 +41,7 @@ export const ModalMoveFile = ({
             </View>
 
             {filteredFolders.length === 0 && (
-              <Text style={styles.textCenter}>No folder available</Text>
+              <Text style={styles.textCenter}>No folder available here</Text>
             )}
 
             {filteredFolders.length > 0 && (

@@ -7,9 +7,25 @@ import {
   Text,
   FlatList,
 } from 'react-native';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import RNFS from 'react-native-fs';
 
-export const ModalMoveFile = ({show, onClose, folders, moveToFolder}) => {
-  const filteredFolders = folders.filter(item => item.isDirectory());
+export const ModalMoveFile = ({
+  show,
+  onClose,
+  currentFile,
+  folders,
+  moveToFolder,
+}) => {
+  // console.log('move');
+  // console.log(folders);
+  // const filteredFolders = folders;
+  const filteredFolders =
+    folders.length > 0
+      ? folders.filter(item => item.path !== currentFile?.path)
+      : [];
+
+  const rootPath = RNFS.DocumentDirectoryPath;
 
   const movingFile = newPath => {
     moveToFolder(newPath);
@@ -24,6 +40,11 @@ export const ModalMoveFile = ({show, onClose, folders, moveToFolder}) => {
             <Text style={styles.modalHeaderText}>Move</Text>
           </View>
           <View style={styles.modalInputContainer}>
+            <View style={styles.listContent}>
+              <FontAwesome name="folder" size={24} color="#F8D775" />
+              <Text onPress={() => movingFile(rootPath)}>Root (Files)</Text>
+            </View>
+
             {filteredFolders.length === 0 && (
               <Text style={styles.textCenter}>No folder available</Text>
             )}
@@ -33,12 +54,15 @@ export const ModalMoveFile = ({show, onClose, folders, moveToFolder}) => {
                 <Text style={styles.modalInputLabel}>Select Folder</Text>
                 <FlatList
                   data={filteredFolders}
-                  keyExtractor={item => item.id}
+                  keyExtractor={item => item.path}
                   renderItem={({item}) => (
-                    <TouchableOpacity style={styles.modalInput}>
-                      <Text onPress={() => movingFile(item.path)}>
-                        {item.name}
-                      </Text>
+                    <TouchableOpacity>
+                      <View style={styles.listContent}>
+                        <FontAwesome name="folder" size={24} color="#F8D775" />
+                        <Text onPress={() => movingFile(item.path)}>
+                          {item.name}
+                        </Text>
+                      </View>
                     </TouchableOpacity>
                   )}
                 />
@@ -57,6 +81,19 @@ export const ModalMoveFile = ({show, onClose, folders, moveToFolder}) => {
 };
 
 const styles = StyleSheet.create({
+  listContent: {
+    width: '100%',
+    paddingVertical: 8,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    borderWidth: 0.5,
+    bordeColor: '#ececec',
+    borderRadius: 3,
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
   textCenter: {
     textAlign: 'center',
   },

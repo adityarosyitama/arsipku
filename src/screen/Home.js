@@ -25,12 +25,15 @@ import {ModalImage} from './modal/ModalImage';
 import {ModalRename} from './modal/ModalRename';
 import {ModalMoveFile} from './modal/ModalMoveFile';
 
+import storage from './../helpers/Storage';
+
 export default function Home({navigation}) {
   const [currentPath, setCurrentPath] = useState(RNFS.DocumentDirectoryPath);
   const [fullFolders, setFullFolders] = useState([]);
   const [folders, setFolders] = useState([]);
   const [folderName, setFolderName] = useState('');
   const [sortDirection, setSortDirection] = useState('asc');
+  const [oldPath, setOldPath] = useState('');
 
   const [modalFolder, setModalFolder] = useState(false);
   const [modalFile, setModalFile] = useState(false);
@@ -38,7 +41,7 @@ export default function Home({navigation}) {
   const [searchText, setSearchText] = useState('');
   const [filteredFolders, setFilteredFolders] = useState([]);
   const [img, setImg] = useState('');
-  const [selectedItem, setSelectedItem] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
   const [newName, setNewName] = useState('');
   const [modalRename, setModalRename] = useState(false);
   const [modalMoveFile, setModalMoveFile] = useState(false);
@@ -47,7 +50,6 @@ export default function Home({navigation}) {
 
   useEffect(() => {
     getAllFolders(currentPath);
-    getFullFolders();
   }, [currentPath]);
 
   useEffect(() => {
@@ -58,15 +60,9 @@ export default function Home({navigation}) {
     setSearchText('');
   }, [img]);
 
-  const getFullFolders = () => {
-    RNFS.readDir(RNFS.DocumentDirectoryPath)
-      .then(result => {
-        setFullFolders(result);
-      })
-      .catch(error => {
-        console.error('Error reading folder:', error);
-      });
-  };
+  useEffect(() => {
+    getAllFoldersFromStorage();
+  }, []);
 
   const getAllFolders = path => {
     RNFS.readDir(path)
@@ -95,6 +91,16 @@ export default function Home({navigation}) {
       .then(() => {
         setFolderName('');
         getAllFolders(currentPath);
+
+        var objFolder = {name: folderName, path: newPath};
+        var newFullFolders = [...fullFolders, objFolder];
+        setFullFolders(newFullFolders);
+
+        storage.save({
+          key: 'folders',
+          data: newFullFolders,
+        });
+
         console.log('Created new folder:', newPath); // Tambahkan log untuk menampilkan path folder yang baru dibuat
       })
       .catch(error => {
@@ -316,6 +322,16 @@ export default function Home({navigation}) {
           text: 'Delete',
           onPress: () => {
             deleteDir(item.path);
+            let exceptFolders = fullFolders.filter(
+              exceptFolder => exceptFolder.path !== item.path,
+            );
+
+            setFullFolders(exceptFolders);
+            storage.save({
+              key: 'folders',
+              data: exceptFolders,
+            });
+
             Alert.alert(
               `Delete ${item.isDirectory() ? 'Folder' : 'File'}`,
               `${item.name} successfully deleted`,
@@ -328,37 +344,75 @@ export default function Home({navigation}) {
     );
   };
 
+  const handleRenamePress = currentItem => {
+    setModalRename(true);
+    setCurrentFile(currentItem);
+    if (currentFile.isDirectory()) {
+      setOldPath(currentItem.path);
+    }
+    setNewName('');
+  };
+
   const renameFile = async () => {
+    if (!newName) {
+      return;
+    }
+
     try {
       let newPath = '';
       // Lakukan pengecekan jenis file dan proses rename sesuai dengan jenis file
-      if (selectedItem.path.toLowerCase().endsWith('.png')) {
-        newPath = `${selectedItem.path.substring(
+      if (currentFile.path.toLowerCase().endsWith('.png')) {
+        newPath = `${currentFile.path.substring(
           0,
-          selectedItem.path.lastIndexOf('/'),
+          currentFile.path.lastIndexOf('/'),
         )}/${newName}.png`;
-        await RNFS.moveFile(selectedItem.path, newPath);
-      } else if (selectedItem.path.toLowerCase().endsWith('.pdf')) {
-        newPath = `${selectedItem.path.substring(
+        await RNFS.moveFile(currentFile.path, newPath);
+      } else if (currentFile.path.toLowerCase().endsWith('.pdf')) {
+        newPath = `${currentFile.path.substring(
           0,
-          selectedItem.path.lastIndexOf('/'),
+          currentFile.path.lastIndexOf('/'),
         )}/${newName}.pdf`;
-        await RNFS.moveFile(selectedItem.path, newPath);
+        await RNFS.moveFile(currentFile.path, newPath);
       } else {
-        newPath = `${selectedItem.path.substring(
+        newPath = `${currentFile.path.substring(
           0,
-          selectedItem.path.lastIndexOf('/'),
+          currentFile.path.lastIndexOf('/'),
         )}/${newName}`;
-        await RNFS.moveFile(selectedItem.path, newPath);
+        await RNFS.moveFile(currentFile.path, newPath);
       }
-      console.log('File renamed successfully:', newPath);
+
+      console.log('oldPath');
+      console.log(oldPath);
+
+      if (currentFile.isDirectory()) {
+        let folderChoiceName = newPath.split('/').pop();
+        let folderChoicePath = newPath;
+
+        let exceptFolders = fullFolders.filter(item => item.path !== oldPath);
+
+        let newFullFolders = [
+          ...exceptFolders,
+          {name: folderChoiceName, path: folderChoicePath},
+        ];
+        console.log('new folders');
+        console.log(newFullFolders);
+        setFullFolders(newFullFolders);
+        storage.save({
+          key: 'folders',
+          data: newFullFolders,
+        });
+      }
+
       // Perbarui daftar folder setelah rename berhasil
       getAllFolders(
-        selectedItem.path.substring(0, selectedItem.path.lastIndexOf('/')),
+        currentFile.path.substring(0, currentFile.path.lastIndexOf('/')),
       );
+
+      console.log('File renamed successfully: ' + newPath);
     } catch (error) {
       console.error('Error renaming file:', error);
     }
+
     handleClosePress();
   };
 
@@ -366,10 +420,15 @@ export default function Home({navigation}) {
     try {
       const newFilePath = `${newPath}/${currentFile.name}`;
       await RNFS.moveFile(currentFile.path, newFilePath);
-      Alert.alert('success', 'File moved successfully');
       // Perbarui daftar folder setelah file dipindahkan
       getAllFolders(newPath);
-      setCurrentFile(null);
+      setCurrentPath(newPath);
+
+      if (currentFile.isDirectory()) {
+        changePathFullFolders(newFilePath);
+      }
+
+      Alert.alert('success', 'Move is successfully');
     } catch (error) {
       console.error('Error moving file:', error);
     }
@@ -377,9 +436,57 @@ export default function Home({navigation}) {
     handleClosePress();
   };
 
+  const changePathFullFolders = newFilePath => {
+    let exceptFolders = fullFolders.filter(
+      item => item.path !== currentFile.path,
+    );
+    let folderChanged = fullFolders.find(
+      item => item.path === currentFile.path,
+    );
+
+    if (folderChanged) {
+      folderChanged.path = newFilePath;
+    }
+
+    let newFullFolders = [...exceptFolders, folderChanged];
+
+    // console.log('new folder: ');
+    // console.log(newFullFolders);
+
+    setFullFolders(newFullFolders);
+    storage.save({
+      key: 'folders',
+      data: newFullFolders,
+    });
+  };
+
   const modalMovingFile = item => {
     setModalMoveFile(true);
     setCurrentFile(item);
+  };
+
+  const getAllFoldersFromStorage = () => {
+    // setFullFolders(filteredFolders.filter(item => item.isDirectory()));
+    // storage.save({
+    //   key: 'folders',
+    //   data: filteredFolders.filter(item => item.isDirectory()),
+    // });
+
+    // storage.remove({
+    //   key: 'folders',
+    // });
+
+    storage
+      .load({
+        key: 'folders',
+      })
+      .then(ret => {
+        let arrays = Object.keys(ret).map(key => ret[key]);
+        setFullFolders(arrays);
+      })
+      .catch(err => {
+        console.log('error loading folders: ' + err);
+      });
   };
 
   const renderItem = ({item}) => {
@@ -410,7 +517,7 @@ export default function Home({navigation}) {
                 <AntDesign name="swap" size={18} color="gray" />
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => setModalRename(true)}
+                onPress={() => handleRenamePress(item)}
                 style={styles.menu}>
                 <AntDesign name="edit" size={18} color="gray" />
               </TouchableOpacity>
@@ -481,6 +588,7 @@ export default function Home({navigation}) {
           setModalMoveFile(false);
           handleClosePress();
         }}
+        currentFile={currentFile}
         folders={fullFolders}
         moveToFolder={moveToFolder}
       />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Modal,
@@ -17,7 +17,6 @@ export const ModalRename = ({
   renameFile,
   selectedItem,
 }) => {
-
   return (
     <Modal transparent visible={show} onRequestClose={onClose}>
       <View style={styles.modalContainer}>

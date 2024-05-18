@@ -374,15 +374,6 @@ export default function Home({navigation}) {
       console.error('Error moving file:', error);
     }
 
-    // RNFS.moveFile(currentFile.path, newPath + '/' + currentFile.name)
-    //   .then(() => {
-    //     setNewPath(newPath);
-    //     onClose();
-    //   })
-    //   .catch(err => {
-    //     console.log(err.message);
-    //   });
-
     handleClosePress();
   };
 
@@ -490,7 +481,7 @@ export default function Home({navigation}) {
           setModalMoveFile(false);
           handleClosePress();
         }}
-        folders={folders}
+        folders={fullFolders}
         moveToFolder={moveToFolder}
       />
       <ScrollView

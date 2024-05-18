@@ -24,16 +24,26 @@ export const ModalMoveFile = ({show, onClose, folders, moveToFolder}) => {
             <Text style={styles.modalHeaderText}>Move</Text>
           </View>
           <View style={styles.modalInputContainer}>
-            <Text style={styles.modalInputLabel}>Select Folder</Text>
-            <FlatList
-              data={filteredFolders}
-              keyExtractor={item => item.id}
-              renderItem={({item}) => (
-                <TouchableOpacity style={styles.modalInput}>
-                  <Text onPress={() => movingFile(item.path)}>{item.name}</Text>
-                </TouchableOpacity>
-              )}
-            />
+            {filteredFolders.length === 0 && (
+              <Text style={styles.textCenter}>No folder available</Text>
+            )}
+
+            {filteredFolders.length > 0 && (
+              <>
+                <Text style={styles.modalInputLabel}>Select Folder</Text>
+                <FlatList
+                  data={filteredFolders}
+                  keyExtractor={item => item.id}
+                  renderItem={({item}) => (
+                    <TouchableOpacity style={styles.modalInput}>
+                      <Text onPress={() => movingFile(item.path)}>
+                        {item.name}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              </>
+            )}
           </View>
           <View style={styles.modalButtonContainer}>
             <TouchableOpacity onPress={onClose} style={styles.modalButton}>
@@ -47,6 +57,9 @@ export const ModalMoveFile = ({show, onClose, folders, moveToFolder}) => {
 };
 
 const styles = StyleSheet.create({
+  textCenter: {
+    textAlign: 'center',
+  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',

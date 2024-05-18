@@ -23,6 +23,7 @@ import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import {ModalConvertFile} from './modal/ModalConvertFile';
 import {ModalImage} from './modal/ModalImage';
 import {ModalRename} from './modal/ModalRename';
+import {ModalMoveFile} from './modal/ModalMoveFile';
 
 export default function Home({navigation}) {
   const [currentPath, setCurrentPath] = useState(RNFS.DocumentDirectoryPath);
@@ -39,6 +40,9 @@ export default function Home({navigation}) {
   const [selectedItem, setSelectedItem] = useState(null);
   const [newName, setNewName] = useState('');
   const [modalRename, setModalRename] = useState(false);
+  const [modalMoveFile, setModalMoveFile] = useState(false);
+
+  const [currentFile, setCurrentFile] = useState(null);
 
   useEffect(() => {
     getAllFolders(currentPath);
@@ -79,6 +83,7 @@ export default function Home({navigation}) {
       .then(() => {
         setFolderName('');
         getAllFolders(currentPath);
+
         console.log('Created new folder:', newPath); // Tambahkan log untuk menampilkan path folder yang baru dibuat
       })
       .catch(error => {
@@ -279,15 +284,15 @@ export default function Home({navigation}) {
     }
   };
 
-  const handleMenuPress = (item) => {
+  const handleMenuPress = item => {
     setSelectedItem(item);
   };
-  
+
   const handleClosePress = () => {
     setSelectedItem(null);
   };
-  
-  const handleDeletePress = (item) => {
+
+  const handleDeletePress = item => {
     Alert.alert(
       `Delete ${item.isDirectory() ? 'Folder' : 'File'}`,
       `Are you sure you want to delete ${item.name}?`,
@@ -312,41 +317,75 @@ export default function Home({navigation}) {
     );
   };
 
+  const handleRenamePress = currentItem => {
+    setModalRename(true);
+    setCurrentFile(currentItem);
+    setNewName('');
+  };
+
   const renameFile = async () => {
+    if (!newName) {
+      return;
+    }
+
     try {
       let newPath = '';
       // Lakukan pengecekan jenis file dan proses rename sesuai dengan jenis file
-      if (selectedItem.path.toLowerCase().endsWith('.png')) {
-        newPath = `${selectedItem.path.substring(
+      if (currentFile.path.toLowerCase().endsWith('.png')) {
+        newPath = `${currentFile.path.substring(
           0,
-          selectedItem.path.lastIndexOf('/'),
+          currentFile.path.lastIndexOf('/'),
         )}/${newName}.png`;
-        await RNFS.moveFile(selectedItem.path, newPath);
-      } else if (selectedItem.path.toLowerCase().endsWith('.pdf')) {
-        newPath = `${selectedItem.path.substring(
+        await RNFS.moveFile(currentFile.path, newPath);
+      } else if (currentFile.path.toLowerCase().endsWith('.pdf')) {
+        newPath = `${currentFile.path.substring(
           0,
-          selectedItem.path.lastIndexOf('/'),
+          currentFile.path.lastIndexOf('/'),
         )}/${newName}.pdf`;
-        await RNFS.moveFile(selectedItem.path, newPath);
+        await RNFS.moveFile(currentFile.path, newPath);
       } else {
-        newPath = `${selectedItem.path.substring(
+        newPath = `${currentFile.path.substring(
           0,
-          selectedItem.path.lastIndexOf('/'),
+          currentFile.path.lastIndexOf('/'),
         )}/${newName}`;
-        await RNFS.moveFile(selectedItem.path, newPath);
+        await RNFS.moveFile(currentFile.path, newPath);
       }
-      console.log('File renamed successfully:', newPath);
+
       // Perbarui daftar folder setelah rename berhasil
       getAllFolders(
-        selectedItem.path.substring(0, selectedItem.path.lastIndexOf('/')),
+        currentFile.path.substring(0, currentFile.path.lastIndexOf('/')),
       );
+
+      console.log('File renamed successfully: ' + newPath);
     } catch (error) {
       console.error('Error renaming file:', error);
     }
-    handleClosePress();
-  };  
 
-  const renderItem = ({ item }) => {
+    handleClosePress();
+  };
+
+  const moveToFolder = async newPath => {
+    try {
+      const newFilePath = `${newPath}/${currentFile.name}`;
+      await RNFS.moveFile(currentFile.path, newFilePath);
+      // Perbarui daftar folder setelah file dipindahkan
+      getAllFolders(newPath);
+      setCurrentPath(newPath);
+
+      Alert.alert('success', 'Move is successfully');
+    } catch (error) {
+      console.error('Error moving file:', error);
+    }
+
+    handleClosePress();
+  };
+
+  const modalMovingFile = item => {
+    setModalMoveFile(true);
+    setCurrentFile(item);
+  };
+
+  const renderItem = ({item}) => {
     return (
       <View style={styles.itemContainer}>
         <TouchableOpacity onPress={() => navigateToFolder(item)}>
@@ -368,15 +407,26 @@ export default function Home({navigation}) {
         <View style={styles.itemContent}>
           {selectedItem === item && (
             <View style={styles.containerMenu}>
-              <TouchableOpacity onPress={() => setModalRename(true)} style={styles.menu}>
+              <TouchableOpacity
+                onPress={() => modalMovingFile(item)}
+                style={styles.menu}>
+                <AntDesign name="swap" size={18} color="gray" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleRenamePress(item)}
+                style={styles.menu}>
                 <AntDesign name="edit" size={18} color="gray" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDeletePress(item)} style={styles.menu}>
+              <TouchableOpacity
+                onPress={() => handleDeletePress(item)}
+                style={styles.menu}>
                 <AntDesign name="delete" size={18} color="gray" />
               </TouchableOpacity>
               {/* Render download menu item only if the file is a PDF */}
               {item.name.toLowerCase().endsWith('.pdf') && (
-                <TouchableOpacity onPress={() => downloadFile(item)} style={styles.menu}>
+                <TouchableOpacity
+                  onPress={() => downloadFile(item)}
+                  style={styles.menu}>
                   <AntDesign name="download" size={18} color="gray" />
                 </TouchableOpacity>
               )}
@@ -420,10 +470,23 @@ export default function Home({navigation}) {
       />
       <ModalRename
         show={modalRename}
-        onClose={() => { setModalRename(false); handleClosePress(); }}
+        onClose={() => {
+          setModalRename(false);
+          handleClosePress();
+        }}
         newName={newName}
         setNewName={setNewName}
         renameFile={renameFile}
+      />
+      <ModalMoveFile
+        show={modalMoveFile}
+        onClose={() => {
+          setModalMoveFile(false);
+          handleClosePress();
+        }}
+        currentFile={currentFile}
+        folders={filteredFolders}
+        moveToFolder={moveToFolder}
       />
       <ScrollView
         showsVerticalScrollIndicator={false}

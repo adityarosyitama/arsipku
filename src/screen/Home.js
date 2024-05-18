@@ -347,7 +347,7 @@ export default function Home({navigation}) {
   const handleRenamePress = currentItem => {
     setModalRename(true);
     setCurrentFile(currentItem);
-    if (currentFile.isDirectory()) {
+    if (currentFile && currentFile.isDirectory()) {
       setOldPath(currentItem.path);
     }
     setNewName('');
@@ -466,6 +466,7 @@ export default function Home({navigation}) {
   };
 
   const getAllFoldersFromStorage = () => {
+    console.log(fullFolders);
     // setFullFolders(filteredFolders.filter(item => item.isDirectory()));
     // storage.save({
     //   key: 'folders',

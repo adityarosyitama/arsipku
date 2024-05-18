@@ -17,7 +17,7 @@ export const ModalMoveFile = ({
   folders,
   moveToFolder,
 }) => {
-  filteredFolders = folders.filter(item => item.path !== currentFile.path);
+  filteredFolders = folders.filter(item => item.path !== currentFile?.path);
   let filteredFolders = filteredFolders.filter(item => item.isDirectory());
 
   const rootPath = RNFS.DocumentDirectoryPath;
@@ -54,7 +54,9 @@ export const ModalMoveFile = ({
                     <TouchableOpacity>
                       <View style={styles.listContent}>
                         <FontAwesome name="folder" size={24} color="#F8D775" />
-                        <Text onPress={() => movingFile(item.path)}>
+                        <Text
+                          style={styles.itemText}
+                          onPress={() => movingFile(item.path)}>
                           {item.name}
                         </Text>
                       </View>
@@ -91,6 +93,11 @@ const styles = StyleSheet.create({
   },
   textCenter: {
     textAlign: 'center',
+  },
+  itemText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#322f2e',
   },
   modalContainer: {
     flex: 1,

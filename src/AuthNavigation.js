@@ -4,13 +4,13 @@ import Login from './screen/Login';
 import EditProfile from './screen/EditProfile';
 import Register from './screen/Register';
 import MyTabs from './screen/bottomNav';
-import Routing from './Routing';
 import About from './screen/About';
 import ConvertFile from './screen/PdfViewer';
-import { ModalMenu } from './screen/modal/ModalMenu';
-import { ModalNewFolder } from './screen/modal/ModalNewFolder';
-import { ModalAddFile } from './screen/modal/ModalAddFile';
+import {ModalMenu} from './screen/modal/ModalMenu';
+import {ModalNewFolder} from './screen/modal/ModalNewFolder';
+import {ModalAddFile} from './screen/modal/ModalAddFile';
 import PdfViewer from './screen/PdfViewer';
+import Routing from './Routing';
 
 const Stack = createStackNavigator();
 function AuthNavigation() {

@@ -23,9 +23,11 @@ import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import {ModalConvertFile} from './modal/ModalConvertFile';
 import {ModalImage} from './modal/ModalImage';
 import {ModalRename} from './modal/ModalRename';
+import {ModalMoveFile} from './modal/ModalMoveFile';
 
 export default function Home({navigation}) {
   const [currentPath, setCurrentPath] = useState(RNFS.DocumentDirectoryPath);
+  const [fullFolders, setFullFolders] = useState([]);
   const [folders, setFolders] = useState([]);
   const [folderName, setFolderName] = useState('');
   const [sortDirection, setSortDirection] = useState('asc');
@@ -36,12 +38,16 @@ export default function Home({navigation}) {
   const [searchText, setSearchText] = useState('');
   const [filteredFolders, setFilteredFolders] = useState([]);
   const [img, setImg] = useState('');
-  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(false);
   const [newName, setNewName] = useState('');
   const [modalRename, setModalRename] = useState(false);
+  const [modalMoveFile, setModalMoveFile] = useState(false);
+
+  const [currentFile, setCurrentFile] = useState(null);
 
   useEffect(() => {
     getAllFolders(currentPath);
+    getFullFolders();
   }, [currentPath]);
 
   useEffect(() => {
@@ -51,6 +57,16 @@ export default function Home({navigation}) {
   useEffect(() => {
     setSearchText('');
   }, [img]);
+
+  const getFullFolders = () => {
+    RNFS.readDir(RNFS.DocumentDirectoryPath)
+      .then(result => {
+        setFullFolders(result);
+      })
+      .catch(error => {
+        console.error('Error reading folder:', error);
+      });
+  };
 
   const getAllFolders = path => {
     RNFS.readDir(path)
@@ -279,15 +295,15 @@ export default function Home({navigation}) {
     }
   };
 
-  const handleMenuPress = (item) => {
+  const handleMenuPress = item => {
     setSelectedItem(item);
   };
-  
+
   const handleClosePress = () => {
     setSelectedItem(null);
   };
-  
-  const handleDeletePress = (item) => {
+
+  const handleDeletePress = item => {
     Alert.alert(
       `Delete ${item.isDirectory() ? 'Folder' : 'File'}`,
       `Are you sure you want to delete ${item.name}?`,
@@ -344,9 +360,38 @@ export default function Home({navigation}) {
       console.error('Error renaming file:', error);
     }
     handleClosePress();
-  };  
+  };
 
-  const renderItem = ({ item }) => {
+  const moveToFolder = async newPath => {
+    try {
+      const newFilePath = `${newPath}/${currentFile.name}`;
+      await RNFS.moveFile(currentFile.path, newFilePath);
+      Alert.alert('success', 'File moved successfully');
+      // Perbarui daftar folder setelah file dipindahkan
+      getAllFolders(newPath);
+      setCurrentFile(null);
+    } catch (error) {
+      console.error('Error moving file:', error);
+    }
+
+    // RNFS.moveFile(currentFile.path, newPath + '/' + currentFile.name)
+    //   .then(() => {
+    //     setNewPath(newPath);
+    //     onClose();
+    //   })
+    //   .catch(err => {
+    //     console.log(err.message);
+    //   });
+
+    handleClosePress();
+  };
+
+  const modalMovingFile = item => {
+    setModalMoveFile(true);
+    setCurrentFile(item);
+  };
+
+  const renderItem = ({item}) => {
     return (
       <View style={styles.itemContainer}>
         <TouchableOpacity onPress={() => navigateToFolder(item)}>
@@ -368,15 +413,26 @@ export default function Home({navigation}) {
         <View style={styles.itemContent}>
           {selectedItem === item && (
             <View style={styles.containerMenu}>
-              <TouchableOpacity onPress={() => setModalRename(true)} style={styles.menu}>
+              <TouchableOpacity
+                onPress={() => modalMovingFile(item)}
+                style={styles.menu}>
+                <AntDesign name="swap" size={18} color="gray" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setModalRename(true)}
+                style={styles.menu}>
                 <AntDesign name="edit" size={18} color="gray" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDeletePress(item)} style={styles.menu}>
+              <TouchableOpacity
+                onPress={() => handleDeletePress(item)}
+                style={styles.menu}>
                 <AntDesign name="delete" size={18} color="gray" />
               </TouchableOpacity>
               {/* Render download menu item only if the file is a PDF */}
               {item.name.toLowerCase().endsWith('.pdf') && (
-                <TouchableOpacity onPress={() => downloadFile(item)} style={styles.menu}>
+                <TouchableOpacity
+                  onPress={() => downloadFile(item)}
+                  style={styles.menu}>
                   <AntDesign name="download" size={18} color="gray" />
                 </TouchableOpacity>
               )}
@@ -420,10 +476,22 @@ export default function Home({navigation}) {
       />
       <ModalRename
         show={modalRename}
-        onClose={() => { setModalRename(false); handleClosePress(); }}
+        onClose={() => {
+          setModalRename(false);
+          handleClosePress();
+        }}
         newName={newName}
         setNewName={setNewName}
         renameFile={renameFile}
+      />
+      <ModalMoveFile
+        show={modalMoveFile}
+        onClose={() => {
+          setModalMoveFile(false);
+          handleClosePress();
+        }}
+        folders={folders}
+        moveToFolder={moveToFolder}
       />
       <ScrollView
         showsVerticalScrollIndicator={false}

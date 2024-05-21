@@ -37,7 +37,7 @@ export const ModalMoveFile = ({
           <View style={styles.modalInputContainer}>
             <View style={styles.listContent}>
               <FontAwesome name="folder" size={24} color="#F8D775" />
-              <Text onPress={() => movingFile(rootPath)}>Root (Files)</Text>
+              <Text style={styles.itemText} onPress={() => movingFile(rootPath)}>Root (Files)</Text>
             </View>
 
             {filteredFolders.length === 0 && (

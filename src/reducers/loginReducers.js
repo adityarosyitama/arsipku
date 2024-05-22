@@ -1,11 +1,11 @@
 const initialState = {
   loginData: {
-    name: '',
-    email: '',
-    phoneNumber: '',
+    name: 'admin',
+    email: 'admin@gmail.com',
+    phoneNumber: '089',
     address: '',
     imgProfile: '',
-    password: '',
+    password: 'admin',
   },
   isLoggedIn: false,
 };
